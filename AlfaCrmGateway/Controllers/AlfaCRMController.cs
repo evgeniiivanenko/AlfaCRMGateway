@@ -34,48 +34,12 @@ namespace ERIP.Sites.AlfaCrmGateway.Controllers
 
         }
 
-        
-        public async Task<string> Webhook()
+
+        public async Task<string> Webhook(string token = null)
         {
-            var token = "qwerty123456";
+            //token = "qwerty123456";
 
             var stream = Request.InputStream;
-
-            var form = Request.Form;
-
-            var items = HttpContext.Items;
-
-            foreach(var item in items.Keys)
-            {
-                LogService.Current.Debug("ITEMS : KEY - " + item.ToString() + "; " + items[item]);
-            }
-
-            LogService.Current.Debug("FORM : " + form.ToString());
-
-            var param = Request.Params;
-            
-            foreach(var key in param.AllKeys)
-            {
-
-                string debug = "PARAMS : " + key + "; VALUES : ";
-
-                foreach(var val in param.GetValues(key))
-                {
-                    debug += val + "; ";
-                }
-
-                LogService.Current.Debug(debug.Trim());
-
-            }
-
-            var query = Request.QueryString;
-
-            foreach(var q in query.Keys)
-            {
-                LogService.Current.Debug("QUERYSTRING : KEY - " + q + "; VALUES - " + query[q.ToString()]);
-            }
-
-            LogService.Current.Debug("PARAMS : " + param.ToString());
 
             // Проверка токена
             var authAlfaCRMRepository = AppController.Get<IAuthAlfaCRMRepository>();
@@ -87,22 +51,19 @@ namespace ERIP.Sites.AlfaCrmGateway.Controllers
                 throw new ArgumentException("Даный токен не найден", "token");
             }
 
-            //LogService.Current.Debug("STREAM : " + stream);
-
             StreamReader reader = new StreamReader(stream);
-            
+
             string text = reader.ReadToEnd();
 
             LogService.Current.Debug("StreamReader : " + text);
 
             LogService.QueryLog.WriteRequest(text, (int)QueryType.Webhook, "Webhook от AlfaCRM", authAlfaCRM.ServiceId);
 
-            //LogService.Current.Debug("Полученный webhook от alfaCRM(метод POST) : " + text);
-
             var json = JObject.Parse(text);
 
             var eventName = FormatUtility.ConvertToString(json, "event");
 
+            // Должны обрабатываться только события добавления
             switch (eventName)
             {
                 case "update":
@@ -110,11 +71,15 @@ namespace ERIP.Sites.AlfaCrmGateway.Controllers
                     return "200";
             }
 
-            var entity_id = FormatUtility.ConvertToInteger(json, "entity_id");
-
             var fields_new = JObject.Parse((json.GetValue("fields_new").ToString()));
 
             var customer_id = FormatUtility.ConvertToInteger(fields_new, "customer_id");
+
+            var tokenAlfa = await NetworkService.Authorization(authAlfaCRM);
+
+            var responseCustomer = await NetworkService.GetCustomes(customer_id.ToString(), authAlfaCRM, tokenAlfa);
+
+            var customer = new CustomerModel(JObject.Parse(responseCustomer).GetValue("items").First.ToString());
 
             //var branch_id = json.GetValue("branch_id").ToString().Trim('{', '}');
 
@@ -139,31 +104,27 @@ namespace ERIP.Sites.AlfaCrmGateway.Controllers
             var model = new InvoiceModel()
             {
                 Token = tokenAPI,
-                AccountNo = entity_id.ToString(),//"100",
+                AccountNo = customer.custom_contract_no,//"100",
                 Amount = FormatUtility.Convert(fields_new, "income"),
                 Currency = 933,
-                Info = FormatUtility.ConvertToString(fields_new, "note")
+                Info = FormatUtility.ConvertToString(fields_new, "note"),
+                EmailNotification = customer.email,
+                SmsPhone = customer.phone
             };
 
-            string response = "{ \"InvoiceNo\" : 100}"; //= await NetworkService.Invoicing(model, authAlfaCRM.ServiceId);
+            string response = await NetworkService.Invoicing(model, authAlfaCRM.ServiceId);
 
             var responseJson = JObject.Parse(response);
 
-            JToken error;
+            var invoiceNo = FormatUtility.ConvertToInteger(responseJson, "InvoiceNo");
 
-            if (!responseJson.TryGetValue("Error", out error))
-            {
-                var invoiceNo = FormatUtility.ConvertToInteger(responseJson, "InvoiceNo");
+            LogService.Current.Debug("InvoiceNo : " + invoiceNo);
 
+            // var alfaCRMEntityRepository = AppController.Get<IAlfaCRMEntityRepository>();
 
-                LogService.Current.Debug("InvoiceNo : " + invoiceNo);
+            //var id = alfaCRMEntityRepository.Save(entity_id, customer_id, invoiceNo);
 
-               // var alfaCRMEntityRepository = AppController.Get<IAlfaCRMEntityRepository>();
-
-                //var id = alfaCRMEntityRepository.Save(entity_id, customer_id, invoiceNo);
-            }
-
-            return "200,OK";
+            return "200";
         }
     }
 }

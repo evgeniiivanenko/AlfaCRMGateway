@@ -157,7 +157,7 @@ namespace ERIP.Sites.AlfaCrmGateway.Infrastructure.Services
 
         public static async Task<string> GetCustomes(string customer_id, IAuthAlfaCRM auth, string token)
         {
-            string url = auth.HostName + "/v2api/1/customer/index";
+            string url = auth.HostName + "/v2api/"+ auth.Branch +"/customer/index";
 
             var data = new
             {

@@ -176,6 +176,7 @@
     <Compile Include="Infrastructure\Utility\FormatUtility.cs" />
     <Compile Include="Infrastructure\Utility\QueryGeneraterUtility.cs" />
     <Compile Include="Infrastructure\Utility\QueryType.cs" />
+    <Compile Include="Models\CustomerModel.cs" />
     <Compile Include="Models\ErrorResultModel.cs" />
     <Compile Include="Models\InvoiceModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
