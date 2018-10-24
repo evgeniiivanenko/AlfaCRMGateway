@@ -34,6 +34,33 @@ namespace ERIP.Sites.AlfaCrmGateway.Controllers
 
         }
 
+        [HttpGet]
+        public string WebhookTest(string data = null)
+        {
+            var stream = Request.InputStream;
+
+            StreamReader reader = new StreamReader(stream);
+
+            string text = reader.ReadToEnd();
+
+            LogService.Current.Debug("StreamReader (GET) : " + text);
+
+            return "200";
+        }
+
+        [HttpPost]
+        public string WebhookTest(int data = 0)
+        {
+            var stream = Request.InputStream;
+
+            StreamReader reader = new StreamReader(stream);
+
+            string text = reader.ReadToEnd();
+
+            LogService.Current.Debug("StreamReader (POST): " + text);
+
+            return "200";
+        }
 
         public async Task<string> Webhook(string token = null)
         {
@@ -103,7 +130,7 @@ namespace ERIP.Sites.AlfaCrmGateway.Controllers
 
             var model = new InvoiceModel()
             {
-                Token = tokenAPI,
+                Token = "a75b74cbcfe446509e8ee874f421bd64",
                 AccountNo = customer.custom_contract_no,//"100",
                 Amount = FormatUtility.Convert(fields_new, "income"),
                 Currency = 933,

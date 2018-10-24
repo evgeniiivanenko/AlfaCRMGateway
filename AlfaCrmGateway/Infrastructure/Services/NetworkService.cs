@@ -14,6 +14,7 @@ using ERIP.Sites.AlfaCrmGateway.Infrastructure.Utility;
 using ERIP.Sites.AlfaCrmGateway.Infrastructure.Dal.Infrastructure.DTO.Entities;
 using ERIP.Sites.AlfaCrmGateway.Models;
 using Newtonsoft.Json;
+using System.Web.Configuration;
 
 namespace ERIP.Sites.AlfaCrmGateway.Infrastructure.Services
 {
@@ -136,7 +137,13 @@ namespace ERIP.Sites.AlfaCrmGateway.Infrastructure.Services
 
             int requestId = LogService.QueryLog.WriteRequest(json.ToString(), (int)QueryType.Invoicing, "Выставление счета в ЕРИП (ExpressPay)", serviceId);
 
-            string url = UrlSandboxApi + "v1/invoices?token=" + model.Token;
+            bool isTest = bool.Parse(WebConfigurationManager.AppSettings["TestMode"]);
+
+            string url = string.Empty;
+
+            url = isTest ? UrlSandboxApi : UrlApi;
+
+            url += "v1/invoices?token=" + model.Token;
             try
             {
 
@@ -157,7 +164,7 @@ namespace ERIP.Sites.AlfaCrmGateway.Infrastructure.Services
 
         public static async Task<string> GetCustomes(string customer_id, IAuthAlfaCRM auth, string token)
         {
-            string url = auth.HostName + "/v2api/"+ auth.Branch +"/customer/index";
+            string url = auth.HostName + "/v2api/" + auth.Branch + "/customer/index";
 
             var data = new
             {
